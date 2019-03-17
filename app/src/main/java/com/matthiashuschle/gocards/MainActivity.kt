@@ -1,5 +1,7 @@
 package com.matthiashuschle.gocards
 
+import android.app.Application
+import android.arch.lifecycle.LiveData
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity;
 import android.view.Menu
@@ -7,7 +9,8 @@ import android.view.MenuItem
 
 import kotlinx.android.synthetic.main.activity_main.*
 import android.content.Intent
-
+import android.os.AsyncTask
+import android.view.View
 
 
 class MainActivity : AppCompatActivity() {
@@ -20,7 +23,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         // Inflate the menu; this adds items to the action bar if it is present.
-        menuInflater.inflate(R.menu.menu_main, menu)
+//        menuInflater.inflate(R.menu.menu_main, menu)
         return true
     }
 
@@ -36,4 +39,17 @@ class MainActivity : AppCompatActivity() {
             else -> super.onOptionsItemSelected(item)
         }
     }
+
+    /* open settings activity */
+    fun openSettings(view: View) {
+        val intent = Intent(this@MainActivity, SettingsActivity::class.java)
+        startActivity(intent)
+    }
+
+    /* open manage cards main activity */
+    fun openManageCardsMain(view: View) {
+        val intent = Intent(this@MainActivity, ManageCardsMain::class.java)
+        startActivity(intent)
+    }
+
 }
