@@ -11,7 +11,7 @@
             android:theme="@style/AppTheme.NoActionBar">
         <activity android:name=".Manage">
         </activity>
-        <activity android:name=".ManageCardsMain">
+        <activity android:name=".ManageActivity">
         </activity>
         <activity
                 android:name=".SettingsActivity"

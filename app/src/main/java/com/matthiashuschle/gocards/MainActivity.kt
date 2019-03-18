@@ -1,15 +1,11 @@
 package com.matthiashuschle.gocards
 
-import android.app.Application
-import android.arch.lifecycle.LiveData
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity;
 import android.view.Menu
 import android.view.MenuItem
 
-import kotlinx.android.synthetic.main.activity_main.*
 import android.content.Intent
-import android.os.AsyncTask
 import android.view.View
 
 
@@ -48,7 +44,7 @@ class MainActivity : AppCompatActivity() {
 
     /* open manage cards main activity */
     fun openManageCardsMain(view: View) {
-        val intent = Intent(this@MainActivity, ManageCardsMain::class.java)
+        val intent = Intent(this@MainActivity, ManageActivity::class.java)
         startActivity(intent)
     }
 

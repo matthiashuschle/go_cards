@@ -5,12 +5,12 @@
     <!-- "Mark Favorite", should appear as action button if possible -->
     <item
             android:id="@+id/action_import"
-            android:icon="@drawable/ic_down_24dp"
+            android:icon="@drawable/ic_import_export_black_24dp"
             android:title="@string/action_import"
             app:showAsAction="ifRoom"/>
     <item
             android:id="@+id/action_new"
-            android:icon="@drawable/ic_plus_24dp"
+            android:icon="@drawable/ic_add_black_24dp"
             android:title="@string/action_new"
             app:showAsAction="ifRoom"/>
 
