@@ -32,6 +32,7 @@ class SettingsActivity : AppCompatPreferenceActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        setSupportActionBar(findViewById(R.id.toolbar_settings))
         setupActionBar()
     }
 
@@ -39,7 +40,8 @@ class SettingsActivity : AppCompatPreferenceActivity() {
      * Set up the [android.app.ActionBar], if the API is available.
      */
     private fun setupActionBar() {
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+//        setSupportActionBar(findViewById(R.id.toolbar_settings))
+//        supportActionBar?.setDisplayHomeAsUpEnabled(true)
     }
 
     override fun onMenuItemSelected(featureId: Int, item: MenuItem): Boolean {
