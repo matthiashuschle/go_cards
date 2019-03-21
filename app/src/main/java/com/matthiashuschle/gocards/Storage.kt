@@ -3,6 +3,7 @@ package com.matthiashuschle.gocards
 import android.app.Application
 import android.arch.lifecycle.AndroidViewModel
 import android.arch.lifecycle.LiveData
+import android.arch.persistence.db.SupportSQLiteDatabase
 import android.util.Log
 import android.arch.persistence.room.*
 import android.support.annotation.NonNull
@@ -26,16 +27,28 @@ import kotlinx.coroutines.launch
     ]
 )
 data class CardSet(
-    @PrimaryKey(autoGenerate = true) var sid: Int?,
+    @PrimaryKey(autoGenerate = true) var sid: Long?,
     @NonNull
     @ColumnInfo(name = "name") var name: String,
     @ColumnInfo(name = "info") var info: String?,
+    @ColumnInfo(name = "info_left") var infoLeft: String?,
+    @ColumnInfo(name = "info_right") var infoRight: String?,
     @ColumnInfo(name = "active") var active: Boolean
 ){
     constructor(): this(
         sid = null,
         name = "",
         info = null,
+        infoLeft = null,
+        infoRight = null,
+        active = false
+    )
+    constructor(name: String, info: String?, infoLeft: String?, infoRight: String?): this(
+        sid = null,
+        name = name,
+        info = info,
+        infoLeft = infoLeft,
+        infoRight = infoRight,
         active = false
     )
 }
@@ -51,17 +64,17 @@ data class CardSet(
     ]
 )
 data class Card(
-    @PrimaryKey(autoGenerate = true) var cid: Int?,
-    @ColumnInfo(name = "fk_card_set_id") var fkCardSetId: Int,
+    @PrimaryKey(autoGenerate = true) var cid: Long?,
+    @ColumnInfo(name = "fk_card_set_id") var fkCardSetId: Long?,
     @ColumnInfo(name = "left") var left: String?,
     @ColumnInfo(name = "right") var right: String?,
     @ColumnInfo(name = "info_left") var infoLeft: String?,
     @ColumnInfo(name = "info_right") var infoRight: String?,
     @ColumnInfo(name = "last_seen") var lastSeen: String?,
-    @ColumnInfo(name = "streak") var streak: String?,
+    @ColumnInfo(name = "streak") var streak: Int,
     @ColumnInfo(name = "hidden_until") var hiddenUntil: String?
 ){
-    constructor(cardSetId: Int): this(
+    constructor(cardSetId: Long): this(
         cid = null,
         fkCardSetId = cardSetId,
         left = null,
@@ -69,7 +82,18 @@ data class Card(
         infoLeft = null,
         infoRight = null,
         lastSeen = null,
-        streak = null,
+        streak = 0,
+        hiddenUntil = null
+    )
+    constructor(cardSet: CardSet, left: String?, right: String?): this(
+        cid = null,
+        fkCardSetId = cardSet.sid,
+        left = left,
+        right = right,
+        infoLeft = cardSet.infoLeft,
+        infoRight = cardSet.infoRight,
+        lastSeen = null,
+        streak = 0,
         hiddenUntil = null
     )
 }
@@ -85,8 +109,11 @@ interface CardSetDao {
 //    @Query("SELECT * FROM card_set WHERE name LIKE :name LIMIT 1")
 //    fun findByName(name: String): LiveData<CardSet>
 
+    @Query("SELECT COUNT(*) FROM card_set")
+    fun countSets(): Boolean
+
     @Insert
-    fun insert(vararg card_sets: CardSet): Long
+    fun insert(vararg card_sets: CardSet): Array<Long>
 
     @Delete
     fun delete(card_set: CardSet)
@@ -104,7 +131,7 @@ interface CardDao {
 //    fun findBySetId(setId: Int): LiveData<List<Card>>
 
     @Insert
-    fun insert(vararg card: Card): Long
+    fun insert(vararg card: Card): Array<Long>
 
     @Delete
     fun delete(card: Card)
@@ -118,18 +145,22 @@ abstract class CardDatabase : RoomDatabase() {
     abstract fun cardDao(): CardDao
 
     companion object {
+        @Volatile
         private var INSTANCE: CardDatabase? = null
 
-        fun getInstance(context: Context): CardDatabase {
+        fun getInstance(context: Context, scope: CoroutineScope): CardDatabase {
             val tempInstance = INSTANCE
             if (tempInstance != null) {
                 return tempInstance
             }
-            synchronized(CardDatabase::class) {
+            synchronized(this) {
                 val newInstance = Room.databaseBuilder(
                     context.applicationContext,
                     CardDatabase::class.java, "card_database"
-                ).build()
+                )
+                    .fallbackToDestructiveMigration()
+                    .addCallback(CardDatabaseCallback(scope))
+                    .build()
                 INSTANCE = newInstance
                 return newInstance
             }
@@ -137,6 +168,34 @@ abstract class CardDatabase : RoomDatabase() {
 
         fun destroyInstance() {
             INSTANCE = null
+        }
+
+        private class CardDatabaseCallback(
+            private val scope: CoroutineScope
+        ) : RoomDatabase.Callback() {
+
+            override fun onOpen(db: SupportSQLiteDatabase) {
+                super.onOpen(db)
+                INSTANCE?.let { database ->
+                    scope.launch(Dispatchers.IO) {
+                        populateDatabase(database.cardDao(), database.cardSetDao())
+                    }
+                }
+            }
+        }
+
+        fun populateDatabase(cardDao: CardDao, cardSetDao: CardSetDao) {
+            Log.w("GoCards", "entering populateDatabase")
+            val nSets = cardSetDao.countSets()
+            Log.w("GoCards", "found $nSets entries")
+            if (cardSetDao.countSets()) return
+            Log.w("GoCards", "filling test entry")
+            val cardSet = CardSet(null, "test", null, "EN", "DE", false)
+            val insertedSIds = cardSetDao.insert(cardSet)
+            if (insertedSIds.isNotEmpty()) cardSet.sid = insertedSIds[0]
+            val card = Card(cardSet, "hello", "hallo")
+            val insertedCIds = cardSetDao.insert(cardSet)
+            if (insertedCIds.isNotEmpty()) card.cid = insertedCIds[0]
         }
     }
 }
@@ -185,8 +244,8 @@ class CardViewModel(application: Application) : AndroidViewModel(application) {
     val allCardSets: LiveData<List<CardSet>>
 
     init {
-        val cardDao = CardDatabase.getInstance(application).cardDao()
-        val cardSetDao = CardDatabase.getInstance(application).cardSetDao()
+        val cardDao = CardDatabase.getInstance(application, scope).cardDao()
+        val cardSetDao = CardDatabase.getInstance(application, scope).cardSetDao()
         repository = CardRepository(cardDao, cardSetDao)
         allCards = repository.allCards
         allCardSets = repository.allCardSets
@@ -205,3 +264,6 @@ class CardViewModel(application: Application) : AndroidViewModel(application) {
         repository.insertCardSet(cardSet)
     }
 }
+
+
+

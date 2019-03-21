@@ -17,6 +17,7 @@ import android.preference.RingtonePreference
 import android.text.TextUtils
 import android.view.MenuItem
 import android.support.v4.app.NavUtils
+import android.util.Log
 
 /**
  * A [PreferenceActivity] that presents a set of application settings. On
@@ -32,6 +33,7 @@ class SettingsActivity : AppCompatPreferenceActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Log.w("GoCards", "onCreate of SettingsActivity")
         setupActionBar()
     }
 

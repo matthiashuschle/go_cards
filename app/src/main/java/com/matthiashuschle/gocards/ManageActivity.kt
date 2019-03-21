@@ -1,27 +1,46 @@
 package com.matthiashuschle.gocards
 
+import android.app.Activity
+import android.arch.lifecycle.Observer
+import android.arch.lifecycle.ViewModelProviders
 import android.content.Context
+import android.content.Intent
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
-import android.view.LayoutInflater
-import android.view.Menu
-import android.view.View
-import android.view.ViewGroup
+import android.view.*
 import android.widget.ProgressBar
 import android.widget.TextView
+import android.widget.Toast
 
 class ManageActivity : AppCompatActivity() {
+
+    private val newCardSetActivityRequestCode = 1
+    private lateinit var cardViewModel: CardViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_manage)
         setSupportActionBar(findViewById(R.id.toolbar_manage))
         showSpinner()
-        populateSets()
-        createTestDB()
+
+        val recyclerView = findViewById<RecyclerView>(R.id.recyclerview)
+        val adapter = CardSetAdapter(this)
+        recyclerView.adapter = adapter
+        recyclerView.layoutManager = LinearLayoutManager(this)
+
+        cardViewModel = ViewModelProviders.of(this).get(CardViewModel::class.java)
+        cardViewModel.allCardSets.observe(this, Observer { cardSets ->
+            // Update the cached copy of the words in the adapter.
+            cardSets?.let { adapter.setCardSets(it) }
+        })
         showSpinner(false)
+    }
+
+    fun onClickCreateSet(item: MenuItem) {
+        val intent = Intent(this@ManageActivity, NewSetActivity::class.java)
+        startActivityForResult(intent, newCardSetActivityRequestCode)
     }
 
     private fun showSpinner(show: Boolean=true) {
@@ -29,21 +48,39 @@ class ManageActivity : AppCompatActivity() {
         spinner.visibility = if (show) View.VISIBLE else View.GONE
     }
 
-    fun createTestDB() {
-
-    }
-
-    fun populateSets() {
-        val recyclerView = findViewById<RecyclerView>(R.id.recyclerview)
-        val adapter = CardSetAdapter(this)
-        recyclerView.adapter = adapter
-        recyclerView.layoutManager = LinearLayoutManager(this)
-    }
+//    fun populateSets() {
+//        val recyclerView = findViewById<RecyclerView>(R.id.recyclerview)
+//        val adapter = CardSetAdapter(this)
+//        recyclerView.adapter = adapter
+//        recyclerView.layoutManager = LinearLayoutManager(this)
+//    }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         // Inflate the menu; this adds items to the action bar if it is present.
         menuInflater.inflate(R.menu.menu_manage, menu)
         return true
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+
+        if (requestCode == newCardSetActivityRequestCode && resultCode == Activity.RESULT_OK) {
+            data?.let {
+                val cardSet = CardSet(
+                    it.getStringExtra(NewSetActivity.EXTRA_REPLY_NAME),
+                    it.getStringExtra(NewSetActivity.EXTRA_REPLY_INFO),
+                    it.getStringExtra(NewSetActivity.EXTRA_REPLY_LEFT),
+                    it.getStringExtra(NewSetActivity.EXTRA_REPLY_RIGHT)
+                )
+                cardViewModel.insertCardSet(cardSet)
+            }
+        } else {
+            Toast.makeText(
+                applicationContext,
+                R.string.card_set_not_saved,
+                Toast.LENGTH_LONG
+            ).show()
+        }
     }
 
 //    override fun onOptionsItemSelected(item: MenuItem): Boolean {

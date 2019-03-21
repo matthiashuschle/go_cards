@@ -11,6 +11,7 @@
     <item
             android:id="@+id/action_new"
             android:icon="@drawable/ic_add_black_24dp"
+            android:onClick="onClickCreateSet"
             android:title="@string/action_new"
             app:showAsAction="ifRoom"/>
 
